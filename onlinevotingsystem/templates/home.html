@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoteSphere - Secure Online Voting</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <section class="grid-1">
+        <h1>VoteSphere</h1>
+        <p>
+            "Empowering democracy with secure, transparent, and seamless online voting. Your voice, your choice—anytime, anywhere."
+        </p>
+        <div class="buttons">
+            <a href="{% url 'register_user' %}">Register</a>
+            <a href="{% url 'login' %}">Login</a>
+        </div>
+    </section>
+
+    <section class="grid-2">
+        <!-- Card 1 -->
+        <div class="feature-card">
+            <div class="card-icon">
+                <i class="fas fa-vote-yea"></i>
+            </div>
+            <h3>Secure Online Voting</h3>
+            <p>Cast your vote safely from anywhere with end-to-end encryption, ensuring your choice remains private and protected.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="feature-card">
+            <div class="card-icon">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <h3>Real-Time Results</h3>
+            <p>Instant vote counting and real-time results visualization, ensuring transparency and accuracy in every election.</p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="feature-card">
+            <div class="card-icon">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h3>Voter Authentication</h3>
+            <p>Multi-layer authentication ensures only eligible voters can participate, preventing fraud and multiple votes.</p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="feature-card">
+            <div class="card-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3>Candidate Profiles</h3>
+            <p>View candidate details, manifestos, and background before making an informed voting decision.</p>
+        </div>
+    </section>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/IntersectionObserver/0.12.0/intersection-observer.min.js"></script>
+<script>
+    function handleCardVisibility(entries, observer) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }
+
+    const observer = new IntersectionObserver(handleCardVisibility, {
+        threshold: 0.1
+    });
+
+    document.querySelectorAll('.feature-card').forEach(card => {
+        observer.observe(card);
+    });
+</script>
+</html>
