@@ -1,50 +1,40 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-# Create your models here.
-
 class User(AbstractUser):
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     is_candidate = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
 
-    def _str_(self):
+    def __str__(self):
         return self.email
-
-from django.db import models
-from django.conf import settings
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bio = models.TextField(blank=True, null=True)  # Example additional field
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)  # Example additional field
+    bio = models.TextField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     token = models.CharField(max_length=32, blank=True, null=True)
 
-    def _str_(self):
+    def __str__(self):
         return f'{self.user.username} Profile'
-from django.db import models
-from django.contrib.auth.models import AbstractUser
 
-# Create your models here.
+class Election(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
-class User(AbstractUser):
-    email = models.EmailField(unique=True)
-    is_candidate = models.BooleanField(default=False)
-    is_admin = models.BooleanField(default=False)
-    is_verified = models.BooleanField(default=False)
+    def __str__(self):
+        return self.title
 
-    def _str_(self):
-        return self.email
+class Candidate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Linking candidate to a user
+    election = models.ForeignKey(Election, on_delete=models.CASCADE, related_name="candidates")
+    party = models.CharField(max_length=255, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    votes = models.IntegerField(default=0)
 
-from django.db import models
-from django.conf import settings
-
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bio = models.TextField(blank=True, null=True)  # Example additional field
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)  # Example additional field
-    token = models.CharField(max_length=32, blank=True, null=True)
-
-    def _str_(self):
-        return f'{self.user.username} Profile'
+    def __str__(self):
+        return f"{self.user.username} ({self.party})"

@@ -1,16 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
-from .models import User
 from django.contrib import messages
-from .models import*
-from django.db.models import F
-
+from .models import User, Election, Candidate, Profile
 
 def home(request):
-    return render(request,'home.html')
+    return render(request, 'home.html')
+
 # Register a User (Candidate or Admin)
 def register_user(request):
     if request.method == 'POST':
@@ -20,16 +16,12 @@ def register_user(request):
         confirm_password = request.POST['confirm_password']
         user_role = request.POST.get('role')  # Get role (admin or candidate)
 
-        if User.objects.filter(email=email).exists():
-            messages.error(request, "This email is already registered.")
-            return redirect("register_user")
-
-        # Password validation
+        # Check if passwords match
         if password != confirm_password:
             messages.error(request, "Passwords do not match!")
             return redirect('register_user')
-        
-         # Validate role
+
+        # Validate role
         if user_role not in ['admin', 'candidate']:
             messages.error(request, "Invalid role specified.")
             return redirect('register_user')
@@ -40,75 +32,27 @@ def register_user(request):
         else:
             user = User.objects.create_user(username=username, email=email, password=password, is_candidate=True)
 
-        user.is_active = False  # Inactive until email is verified
         user.save()
-        
-        profile = Profile(user=user)  # Create a Profile linked to the user
-        profile.save()  # Save the profile
 
-        # Send verification email
-        token = get_random_string(32)
-        user.profile.token = token
-        user.profile.save()
-        
-            # Send verification email with custom content
-        send_mail(
-            'Email Verification !!',
-            f"""
-            Hi {user.username},
+        # Create a Profile linked to the user
+        profile = Profile(user=user)
+        profile.save()
 
-            Welcome to Projectfolio! We are excited to have you join our platform. 
-            Please verify your email address by clicking the link below:
-
-            http://127.0.0.1:8000/verify/{token}/
-
-            This will activate your account, and you'll be able to start exploring our platform.
-
-            If you did not sign up for this account, please disregard this email.
-
-            """,
-            'annanyatiwary4@gmail.com',  # Use a dedicated support email instead of 'admin'
-            [email],
-        )
-
-        
-        messages.success(request, "Account created. Please verify your email.")
+        messages.success(request, "Account created successfully! You can now log in.")
         return redirect('login')
 
     return render(request, 'register.html')
 
 
-# Email Verification
-def verify_email(request, token):
-    try:
-        user = User.objects.get(profile__token=token)
-        user.is_active = True
-        user.is_verified = True
-        user.profile.token = None
-        user.save()
-        messages.success(request, "Email verified successfully!")
-        return redirect('login')
-    except User.DoesNotExist:
-        messages.error(request, "Invalid verification link.")
-        return redirect('login')
-
 # Login
-
 def user_login(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        # Custom authenticate method for email
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            user = None
 
-        if user and user.check_password(password):
-            if not user.is_verified:
-                messages.error(request, "Please verify your email first.")
-                return redirect('login')
+        user = authenticate(request, username=username, password=password)
 
+        if user:
             login(request, user)
             if user.is_admin:
                 return redirect('admin_dashboard')  # Admin dashboard
@@ -119,9 +63,8 @@ def user_login(request):
 
         messages.error(request, "Invalid credentials.")
         return redirect('login')
-    else:
-        return render(request, 'login.html')
 
+    return render(request, 'login.html')
 
 
 # Logout
@@ -130,17 +73,61 @@ def user_logout(request):
     logout(request)
     return redirect('login')
 
+
+# Admin Dashboard
 def admin_dashboard(request):
-    projects = Project.objects.all()
+    elections = Election.objects.all()
+    return render(request, 'admin_dashboard.html', {'elections': elections})
 
-    # Calculate progress for each project
-    for project in projects:
-        total_tasks = project.total_tasks
-        # Correctly access the assignments related to this project
-        completed_tasks = sum([assignment.completed_tasks for assignment in project.assignments.all()])
-        project.progress_percentage = (completed_tasks / total_tasks) * 100 if total_tasks else 0
 
-    return render(request, 'admin_dashboard.html', {
-        'projects': projects,
-    })
+def create_election(request):
+    if request.method == "POST":
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        
 
+        # Check if all fields are filled
+        if not title or not start_date or not end_date:
+            messages.error(request, "Please fill all required fields.")
+            return redirect('admin_dashboard')
+
+        # Create the Election
+        election = Election.objects.create(
+            title=title,
+            description=description,
+            start_date=start_date,
+            end_date=end_date,
+            created_by=request.user
+        )
+        election.save()
+        messages.success(request, "Election created successfully!")
+        return redirect('admin_dashboard')
+
+    return redirect('admin_dashboard')
+
+
+@login_required
+def add_candidate(request, election_id):
+    if not request.user.is_admin:
+        messages.error(request, "You do not have permission to add candidates.")
+        return redirect('dashboard')
+
+    election = get_object_or_404(Election, id=election_id)
+
+    if request.method == "POST":
+        user_id = request.POST.get('user_id')  # Assuming candidates are registered users
+        party = request.POST.get('party')
+        bio = request.POST.get('bio')
+
+        user = get_object_or_404(User, id=user_id)
+
+        Candidate.objects.create(
+            user=user, election=election, party=party, bio=bio
+        )
+        messages.success(request, "Candidate added successfully!")
+        return redirect('dashboard')
+
+    users = User.objects.filter(is_candidate=True)  # Fetching only candidate users
+    return render(request, 'admin/add_candidate.html', {'election': election, 'users': users})

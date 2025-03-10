@@ -52,6 +52,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'onlinevotingsystem.urls'
+AUTH_USER_MODEL = 'base.User'
+
 
 TEMPLATES = [
     {

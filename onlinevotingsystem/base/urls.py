@@ -7,6 +7,8 @@ urlpatterns=[
     path('register/', register_user, name='register_user'),
     path('login/', user_login, name='login'),
     path('logout/', user_logout, name='logout'),
-    path('verify/<str:token>/', verify_email, name='verify_email'),
     path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('create-election/', create_election, name='create_election'),
+    path('add-candidate/<int:election_id>/', add_candidate, name='add_candidate'),
+ 
 ]
